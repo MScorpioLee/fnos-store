@@ -857,6 +857,15 @@ const App: React.FC = () => {
                     </Sheet>
                     <h1 className="text-xl font-bold">fnOS Apps</h1>
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCheck}
+                  disabled={checking}
+                  aria-label="检查更新"
+                >
+                  <RefreshCw className={cn("h-5 w-5", checking && "animate-spin")} />
+                </Button>
             </div>
             {activeFilter !== 'recommended' && (
               <>
