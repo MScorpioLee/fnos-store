@@ -1,7 +1,6 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -24,11 +23,6 @@ func (s *Server) handleListApps(w http.ResponseWriter, r *http.Request) {
 			if status == "" {
 				status = "stopped"
 			}
-		}
-
-		releaseURL := ""
-		if app.ReleaseTag != "" {
-			releaseURL = fmt.Sprintf("https://github.com/conversun/fnos-apps/releases/tag/%s", app.ReleaseTag)
 		}
 
 		hasUpdate := app.Status == core.AppStatusUpdateAvailable
@@ -54,10 +48,12 @@ func (s *Server) handleListApps(w http.ResponseWriter, r *http.Request) {
 			HasUpdate:        hasUpdate,
 			UpdateIgnored:    updateIgnored,
 			Platform:         app.Platform,
-			ReleaseURL:       releaseURL,
+			ReleaseURL:       app.ReleaseURL,
 			ReleaseNotes:     "",
 			Status:           status,
 			ServicePort:      app.ServicePort,
+			GatewayPrefix:    app.GatewayPrefix,
+			GatewaySocket:    app.GatewaySocket,
 			Homepage:         app.HomepageURL,
 			IconURL:          app.IconURL,
 			UpdatedAt:        app.UpdatedAt,

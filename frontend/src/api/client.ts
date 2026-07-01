@@ -13,6 +13,8 @@ export interface AppInfo {
   release_notes: string;
   status: string;
   service_port?: number;
+  gateway_prefix?: string;
+  gateway_socket?: string;
   homepage?: string;
   icon_url?: string;
   updated_at?: string;
@@ -70,8 +72,36 @@ export interface AppOperation {
   total?: number;
 }
 
+const GATEWAY_PREFIX = '/app/fnos-apps-store';
+
+function currentGatewayPrefix(): string {
+  if (typeof window === 'undefined') return '';
+  const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
+  return pathname === GATEWAY_PREFIX || pathname.startsWith(`${GATEWAY_PREFIX}/`)
+    ? GATEWAY_PREFIX
+    : '';
+}
+
+export function apiPath(path: string): string {
+  if (/^https?:\/\//i.test(path)) return path;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${currentGatewayPrefix()}${normalizedPath}`;
+}
+
+export function appLaunchUrl(app: Pick<AppInfo, 'gateway_prefix' | 'service_port'>): string {
+  if (typeof window === 'undefined') return '';
+  if (app.gateway_prefix) {
+    const prefix = app.gateway_prefix.endsWith('/') ? app.gateway_prefix : `${app.gateway_prefix}/`;
+    return `${window.location.origin}${prefix}`;
+  }
+  if (app.service_port) {
+    return `${window.location.protocol}//${window.location.hostname}:${app.service_port}`;
+  }
+  return '';
+}
+
 export const fetchApps = async (): Promise<AppsResponse> => {
-  const response = await fetch('/api/apps');
+  const response = await fetch(apiPath('/api/apps'));
   if (!response.ok) {
     throw new Error(`Failed to fetch apps: ${response.statusText}`);
   }
@@ -79,7 +109,7 @@ export const fetchApps = async (): Promise<AppsResponse> => {
 };
 
 export const fetchRecommended = async (): Promise<RecommendedAppsResponse> => {
-  const response = await fetch('/api/recommended');
+  const response = await fetch(apiPath('/api/recommended'));
   if (!response.ok) {
     return { apps: [] };
   }
@@ -87,7 +117,7 @@ export const fetchRecommended = async (): Promise<RecommendedAppsResponse> => {
 };
 
 export const triggerCheck = async (): Promise<CheckResponse> => {
-  const response = await fetch('/api/check', {
+  const response = await fetch(apiPath('/api/check'), {
     method: 'POST',
   });
   if (!response.ok) {
@@ -107,7 +137,7 @@ function streamSSE(url: string, onEvent: SSECallback): SSEHandle {
   const controller = new AbortController();
 
   const promise = (async () => {
-    const response = await fetch(url, { method: 'POST', signal: controller.signal });
+    const response = await fetch(apiPath(url), { method: 'POST', signal: controller.signal });
     if (!response.ok) {
       throw new Error(`Request failed: ${response.statusText}`);
     }
@@ -232,7 +262,7 @@ export interface MirrorCheckResponse {
 
 export const checkMirrors = async (type?: 'github' | 'docker'): Promise<MirrorCheckResponse> => {
   const params = type ? `?type=${type}` : '';
-  const response = await fetch(`/api/mirrors/check${params}`, { method: 'POST' });
+  const response = await fetch(apiPath(`/api/mirrors/check${params}`), { method: 'POST' });
   if (!response.ok) {
     throw new Error(`Failed to check mirrors: ${response.statusText}`);
   }
@@ -252,7 +282,7 @@ export interface StoreUpdateInfo {
 }
 
 export const fetchSettings = async (): Promise<Settings> => {
-  const response = await fetch('/api/settings');
+  const response = await fetch(apiPath('/api/settings'));
   if (!response.ok) {
     throw new Error(`Failed to fetch settings: ${response.statusText}`);
   }
@@ -260,7 +290,7 @@ export const fetchSettings = async (): Promise<Settings> => {
 };
 
 export const updateSettings = async (settings: { check_interval_hours: number; mirror: string; docker_mirror: string; custom_github_mirror?: string; custom_docker_mirror?: string; install_volume: number }): Promise<void> => {
-  const response = await fetch('/api/settings', {
+  const response = await fetch(apiPath('/api/settings'), {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -273,7 +303,7 @@ export const updateSettings = async (settings: { check_interval_hours: number; m
 };
 
 export const fetchStatus = async (): Promise<StatusResponse> => {
-  const response = await fetch('/api/status');
+  const response = await fetch(apiPath('/api/status'));
   if (!response.ok) {
     throw new Error(`Failed to fetch status: ${response.statusText}`);
   }
@@ -281,7 +311,7 @@ export const fetchStatus = async (): Promise<StatusResponse> => {
 };
 
 export const fetchStoreUpdate = async (): Promise<StoreUpdateInfo> => {
-  const response = await fetch('/api/store-update');
+  const response = await fetch(apiPath('/api/store-update'));
   if (!response.ok) {
     throw new Error(`Failed to fetch store update info: ${response.statusText}`);
   }
@@ -293,14 +323,14 @@ export const triggerStoreUpdate = (onEvent: SSECallback): SSEHandle => {
 };
 
 export const ignoreUpdate = async (appname: string): Promise<void> => {
-  const response = await fetch(`/api/apps/${appname}/ignore-update`, { method: 'PUT' });
+  const response = await fetch(apiPath(`/api/apps/${appname}/ignore-update`), { method: 'PUT' });
   if (!response.ok) {
     throw new Error(`Failed to ignore update: ${response.statusText}`);
   }
 };
 
 export const unignoreUpdate = async (appname: string): Promise<void> => {
-  const response = await fetch(`/api/apps/${appname}/ignore-update`, { method: 'DELETE' });
+  const response = await fetch(apiPath(`/api/apps/${appname}/ignore-update`), { method: 'DELETE' });
   if (!response.ok) {
     throw new Error(`Failed to unignore update: ${response.statusText}`);
   }

@@ -11,10 +11,12 @@ import (
 	"fnos-store/internal/scheduler"
 	"fnos-store/internal/source"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -23,6 +25,8 @@ const storeAppName = "fnos-apps-store"
 
 func main() {
 	addr := envOr("LISTEN_ADDR", ":8011")
+	gatewayPrefix := strings.TrimRight(os.Getenv("GATEWAY_PREFIX"), "/")
+	gatewaySocket := os.Getenv("GATEWAY_SOCKET")
 	projectRoot := envOr("PROJECT_ROOT", findProjectRoot())
 	appsDir := envOr("APPS_DIR", defaultAppsDir(projectRoot))
 	dataDir := envOr("DATA_DIR", defaultDataDir(projectRoot))
@@ -81,10 +85,12 @@ func main() {
 	defer cancel()
 	go sched.Start(ctx)
 
+	handler := gatewayAwareHandler(srv.Mux, gatewayPrefix)
 	httpServer := &http.Server{
 		Addr:    addr,
-		Handler: srv.Mux,
+		Handler: handler,
 	}
+	var socketServer *http.Server
 
 	go func() {
 		sigCh := make(chan os.Signal, 1)
@@ -103,13 +109,63 @@ func main() {
 			log.Printf("graceful shutdown failed, forcing close: %v", err)
 			_ = httpServer.Close()
 		}
+		if socketServer != nil {
+			if err := socketServer.Shutdown(shutdownCtx); err != nil {
+				log.Printf("gateway socket shutdown failed, forcing close: %v", err)
+				_ = socketServer.Close()
+			}
+		}
 		cancel()
 	}()
+
+	if gatewaySocket != "" {
+		if err := os.Remove(gatewaySocket); err != nil && !os.IsNotExist(err) {
+			log.Fatalf("remove stale gateway socket: %v", err)
+		}
+		listener, err := net.Listen("unix", gatewaySocket)
+		if err != nil {
+			log.Fatalf("listen gateway socket %s: %v", gatewaySocket, err)
+		}
+		_ = os.Chmod(gatewaySocket, 0o666)
+		defer os.Remove(gatewaySocket)
+		socketServer = &http.Server{Handler: handler}
+		go func() {
+			log.Printf("fnos-store gateway socket listening on %s", gatewaySocket)
+			if err := socketServer.Serve(listener); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("gateway socket server error: %v", err)
+			}
+		}()
+	}
 
 	log.Printf("fnos-store listening on %s", addr)
 	if err := httpServer.ListenAndServe(); err != http.ErrServerClosed {
 		log.Fatalf("server error: %v", err)
 	}
+}
+
+func gatewayAwareHandler(next http.Handler, gatewayPrefix string) http.Handler {
+	if gatewayPrefix == "" {
+		return next
+	}
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == gatewayPrefix {
+			next.ServeHTTP(w, cloneRequestWithPath(r, "/"))
+			return
+		}
+		if strings.HasPrefix(r.URL.Path, gatewayPrefix+"/") {
+			http.StripPrefix(gatewayPrefix, next).ServeHTTP(w, r)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func cloneRequestWithPath(r *http.Request, path string) *http.Request {
+	nextReq := r.Clone(r.Context())
+	nextReq.URL.Path = path
+	nextReq.URL.RawPath = ""
+	return nextReq
 }
 
 func envOr(key, fallback string) string {

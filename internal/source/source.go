@@ -16,6 +16,9 @@ type RemoteApp struct {
 	ServicePort     int
 	Platforms       []string
 	FpkURL          string
+	ReleaseURL      string
+	GatewayPrefix   string
+	GatewaySocket   string
 	IconURL         string
 	DownloadCount   int
 	AppType         string

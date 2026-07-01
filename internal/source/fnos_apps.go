@@ -17,8 +17,9 @@ import (
 )
 
 const (
-	defaultAppsJSONURL = "https://raw.githubusercontent.com/conversun/fnos-apps/main/apps.json"
-	githubReleaseBase  = "https://github.com/conversun/fnos-apps/releases/download"
+	defaultAppsJSONURL  = "https://raw.githubusercontent.com/MScorpioLee/fnos-apps/main/apps.json"
+	githubDownloadBase  = "https://github.com/conversun/fnos-apps/releases/download"
+	githubReleaseTagBase = "https://github.com/conversun/fnos-apps/releases/tag"
 )
 
 type FNOSAppsSource struct {
@@ -45,7 +46,11 @@ type appsJSONEntry struct {
 	FpkVersion      string   `json:"fpk_version"`
 	ReleaseTag      string   `json:"release_tag"`
 	FilePrefix      string   `json:"file_prefix"`
+	DownloadURL     string   `json:"download_url,omitempty"`
+	ReleaseURL      string   `json:"release_url,omitempty"`
 	ServicePort     int      `json:"service_port"`
+	GatewayPrefix   string   `json:"gateway_prefix,omitempty"`
+	GatewaySocket   string   `json:"gateway_socket,omitempty"`
 	IconURL         string   `json:"icon_url"`
 	DownloadCount   int      `json:"download_count"`
 	AppType         string   `json:"app_type"`
@@ -204,14 +209,22 @@ func (s *FNOSAppsSource) decodeApps(raw []byte) ([]RemoteApp, error) {
 			continue
 		}
 
-		directURL := fmt.Sprintf(
-			"%s/%s/%s_%s_%s.fpk",
-			githubReleaseBase,
-			item.ReleaseTag,
-			item.FilePrefix,
-			item.FpkVersion,
-			s.platform,
-		)
+		directURL := item.DownloadURL
+		if directURL == "" {
+			directURL = fmt.Sprintf(
+				"%s/%s/%s_%s_%s.fpk",
+				githubDownloadBase,
+				item.ReleaseTag,
+				item.FilePrefix,
+				item.FpkVersion,
+				s.platform,
+			)
+		}
+
+		releaseURL := item.ReleaseURL
+		if releaseURL == "" && item.ReleaseTag != "" {
+			releaseURL = fmt.Sprintf("%s/%s", githubReleaseTagBase, item.ReleaseTag)
+		}
 
 		app := RemoteApp{
 			AppName:         item.AppName,
@@ -226,6 +239,9 @@ func (s *FNOSAppsSource) decodeApps(raw []byte) ([]RemoteApp, error) {
 			ServicePort:     item.ServicePort,
 			Platforms:       item.Platforms,
 			FpkURL:          directURL,
+			ReleaseURL:      releaseURL,
+			GatewayPrefix:   item.GatewayPrefix,
+			GatewaySocket:   item.GatewaySocket,
 			IconURL:         item.IconURL,
 			DownloadCount:   item.DownloadCount,
 			AppType:         item.AppType,

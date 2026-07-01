@@ -31,6 +31,9 @@ type AppInfo struct {
 	ReleaseTag        string
 	FpkVersion        string
 	DownloadURL       string
+	ReleaseURL        string
+	GatewayPrefix     string
+	GatewaySocket     string
 	DownloadCount     int
 	AppType           string
 	Category          string
@@ -76,6 +79,9 @@ func (r *Registry) Merge(local []Manifest, remote []source.RemoteApp, installedT
 			ReleaseTag:      item.ReleaseTag,
 			FpkVersion:      item.FpkVersion,
 			DownloadURL:     item.FpkURL,
+			ReleaseURL:      item.ReleaseURL,
+			GatewayPrefix:   item.GatewayPrefix,
+			GatewaySocket:   item.GatewaySocket,
 			DownloadCount:   item.DownloadCount,
 			AppType:         item.AppType,
 			Category:        item.Category,

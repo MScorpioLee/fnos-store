@@ -15,6 +15,8 @@ type appResponse struct {
 	ReleaseNotes     string `json:"release_notes"`
 	Status           string `json:"status"`
 	ServicePort      int    `json:"service_port,omitempty"`
+	GatewayPrefix    string `json:"gateway_prefix,omitempty"`
+	GatewaySocket    string `json:"gateway_socket,omitempty"`
 	Homepage         string `json:"homepage,omitempty"`
 	IconURL          string `json:"icon_url,omitempty"`
 	UpdatedAt        string `json:"updated_at,omitempty"`

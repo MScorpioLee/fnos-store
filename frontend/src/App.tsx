@@ -8,7 +8,7 @@ import AppDetailDialog from './components/AppDetailDialog';
 import ProgressOverlay from './components/ProgressOverlay';
 import SettingsDialog from './components/SettingsDialog';
 import RecommendedAppCard from './components/RecommendedAppCard';
-import { fetchApps, triggerCheck, installApp, updateApp, uninstallApp, fetchStatus, fetchStoreUpdate, triggerStoreUpdate, reloadApps, ignoreUpdate, unignoreUpdate, fetchRecommended } from './api/client';
+import { appLaunchUrl, fetchApps, triggerCheck, installApp, updateApp, uninstallApp, fetchStatus, fetchStoreUpdate, triggerStoreUpdate, reloadApps, ignoreUpdate, unignoreUpdate, fetchRecommended } from './api/client';
 import type { AppInfo, AppOperation, SSECallback, RecommendedApp } from './api/client';
 import { toast } from "sonner"
 import { Toaster } from "@/components/ui/sonner"
@@ -704,7 +704,7 @@ const App: React.FC = () => {
                     "w-full h-10 shadow-none text-muted-foreground hover:text-foreground",
                     sidebarCollapsed ? "justify-center px-0" : "justify-start px-3"
                   )}
-                  onClick={() => window.open('https://github.com/conversun/fnos-apps/issues', '_blank')}
+                  onClick={() => window.open('https://github.com/MScorpioLee/fnos-apps/issues', '_blank')}
                 >
                   <MessageCircle className={cn("h-4 w-4 shrink-0", !sidebarCollapsed && "mr-3")} />
                   {!sidebarCollapsed && <span className="flex-1 text-left whitespace-nowrap">问题反馈</span>}
@@ -834,7 +834,7 @@ const App: React.FC = () => {
                                  <Button
                                    variant="ghost"
                                    className="w-full justify-start h-10 px-3 shadow-none text-muted-foreground hover:text-foreground"
-                                   onClick={() => window.open('https://github.com/conversun/fnos-apps/issues', '_blank')}
+                                   onClick={() => window.open('https://github.com/MScorpioLee/fnos-apps/issues', '_blank')}
                                  >
                                     <MessageCircle className="mr-3 h-4 w-4 shrink-0" />
                                     <span className="flex-1 text-left">问题反馈</span>
@@ -1127,13 +1127,13 @@ const App: React.FC = () => {
             )}
 
             <div className="flex justify-end gap-2 pt-1">
-              {successInfo.app.service_port && (
+              {appLaunchUrl(successInfo.app) && (
                 <Button
                   variant="outline"
                   size="sm"
                   className="rounded-full px-4"
                   onClick={() => {
-                    window.open(`${window.location.protocol}//${window.location.hostname}:${successInfo.app.service_port}`, '_blank');
+                    window.open(appLaunchUrl(successInfo.app), '_blank');
                     setSuccessInfo(null);
                   }}
                 >

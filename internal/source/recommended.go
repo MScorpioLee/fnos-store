@@ -14,7 +14,7 @@ import (
 	"fnos-store/internal/config"
 )
 
-const defaultRecommendedJSONURL = "https://raw.githubusercontent.com/conversun/fnos-apps/main/recommended.json"
+const defaultRecommendedJSONURL = "https://raw.githubusercontent.com/MScorpioLee/fnos-apps/main/recommended.json"
 
 type RecommendedApp struct {
 	Name          string `json:"name"`
